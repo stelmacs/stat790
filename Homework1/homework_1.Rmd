@@ -37,7 +37,7 @@ library(ISLR2)
 library(class)
 library(FNN)
 
-set.seed(5)
+set.seed(123456)
 ```
 First, the data for class \textit{blue} was generated:
 ```{r q2_2}
@@ -97,39 +97,33 @@ data <- rbind(blue, orange)
 
 Then, KNN was performed on the data:
 ```{r q2_4}
-# create test and training set
-index <- sample(1:nrow(data), 0.8*nrow(data))
-train <- data[index,]
-test <- data[-index,]
+seqx <- seq(min(data$x), max(data$x), by = 0.1)
+seqy <- seq(min(data$y), max(data$y), by = 0.1)
 
-grid <- expand.grid(x = seq(min(test$x), max(test$x), by = 0.1), 
-                    y = seq(min(test$y), max(test$y), by = 0.1))
+grid <- expand.grid(seqx, seqy)
 
 knn_pred <- knn(data[,c(1,2)], grid, data$class, k = 15, prob = TRUE)
 prob <- attr(knn_pred, "prob")
+prob <- ifelse(knn_pred=="1", prob, 1-prob)
 
-a <- mutate(grid, prob = prob, class = 0,  
-              prob_cls = ifelse(knn_pred == class, 1, 0))
-
-b <- mutate(grid, prob = prob, class = 1,  
-              prob_cls = ifelse(knn_pred == class, 1, 0))
-ab <- bind_rows(a, b)
+prob_mat <- matrix(prob, nrow = length(seqx), ncol = length(seqy))
+par(mar = rep(2,4))
 ```
 
-The plot similar to Figure 2.2 in @esl was generated using the code below. I followed @plothelp as a guideline on how to build the plot.
+The plot similar to Figure 2.2 in @esl was generated using the code below.
 
-```{r q2_plot}
-ggplot(ab) + 
-  geom_point(aes(x = x, y = y, color = class), 
-             data = mutate(grid, class = knn_pred), 
-             size = 0.5) + 
-  geom_point(aes(x = x, y = y, color = as.factor(class)), 
-             size = 4, shape = 1, data = data) + 
-  scale_color_manual(values=c("#ffaf0f", "#48a2f7")) +
-  geom_contour(aes(x = x, y = x, z = prob_cls, 
-             group = as.factor(class), 
-             color = "black"), 
-             size = 1, bins = 1, data = ab) 
+```{r q2_plot, out.width="100%",out.height = "150%"}
+contour(seqx, seqy, prob_mat, 
+        levels=0.5, 
+        labels="",
+        axes = F, 
+        main = "15-Nearest Neighbour Classifier")
+points(data[,c(1,2)], 
+       col = ifelse(data$class==1, "#ffaf0f", "#48a2f7"))
+points(grid, pch=".", 
+       cex = 1.5, 
+       col = ifelse(prob_mat > 0.5, "#ffaf0f", "#48a2f7"))
+box()
 ```
 
 
